@@ -1,1 +1,1 @@
-web: npm ci --omit=dev && npm run build && npm start:prod
+web: npm ci --omit=dev && npm start:prod
