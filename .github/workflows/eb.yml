@@ -1,0 +1,46 @@
+name: Sparta Nest.js EB
+
+on:
+  push: # PUSH 됐을 때
+    branches: [main] # main 브랜치
+
+jobs:
+  deploy:
+    # 작업을 실행 할 VM의 OS 지정
+    runs-on: ubuntu-24.04
+
+    # 작업 내의 단위 작업(step)을 정의
+    steps:
+      # 소스 코드 가져오기
+      - name: Checkout source code # step의 이름 지정 (선택 사항)
+        uses: actions/checkout@v4 # 소스 복사를 위해 미리 정의 된 workflow를 불러와서 사용
+
+      # VM에 Node.js 설치하기
+      - name: Setup Node.js environment # step의 이름 지정 (선택 사항)
+        uses: actions/setup-node@v4 # Node.js 설치를 위해 미리 정의 된 workflow를 불러와서 사용
+        with:
+          node-version: 20 # 설치 할 Node.js 버전 지정
+          cache: 'npm'
+
+      # 의존성 패키지 설치하기
+      - name: Install dependencies # step의 이름 지정 (선택 사항)
+        run: npm ci
+
+      # 빌드 실행
+      - name: Run build # step의 이름 지정 (선택 사항)
+        run: npm run build
+
+      # EB에 배포할 zip 파일 생성
+      - name: Generate deployment package
+        run: zip -r deploy.zip . -x '*.git*' './node_modules/*'
+
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v14
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: sparta-ebs
+          environment_name: sparta-ebs-env
+          region: ${{ secrets.AWS_REGION }}
+          version_label: ${{github.SHA}}
+          deployment_package: deploy.zip
